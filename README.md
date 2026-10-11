@@ -110,3 +110,14 @@ often files it as Spam. Send from your own domain instead, e.g. `optimusinforser
 4. When Mailjet shows SPF and DKIM as OK, validate the sender `optimusinforservice@elygrad.com` (the confirmation email
    reaches you through your Namecheap email forwarding).
 5. Set `MAIL_FROM_ADDRESS=optimusinforservice@elygrad.com` on the vendor portal (and the exam portal, which has the same issue).
+
+## Deploying on Render
+
+1. Web service from this folder's `Dockerfile`.
+2. **Environment** tab of *this* service (or an Environment Group linked to it), exact names:
+   `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `SIGNING_PRIVATE_KEY` (the one 64-character
+   line from `subscription-tool/keys-online/private.key`, starting `MC4CAQAw`), `MAILJET_SMTP_USERNAME`,
+   `MAILJET_SMTP_PASSWORD`, `MAIL_FROM_ADDRESS`, `VENDOR_ADMIN_EMAIL`, `PAYSTACK_SECRET_KEY`.
+   `PUBLIC_URL` is optional on Render: without it the portal uses Render's own `RENDER_EXTERNAL_URL`.
+   Set it if you use your own domain.
+3. **Save, rebuild and deploy.** The first lines of the log are a `[CONFIG]` summary: each setting found or `MISSING`.

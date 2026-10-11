@@ -87,13 +87,16 @@ public class KeySigner {
         }
     }
 
-    private static PrivateKey decode(String b64) {
-        if (b64 == null || b64.isBlank()) return null;
+    /** Base64 of the key, forgiving how it was pasted: quotes, PEM header lines, spaces or line breaks. */
+    private static PrivateKey decode(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String b64 = raw.replaceAll("-----(BEGIN|END)[A-Z ]*-----", "").replaceAll("[\\s\"']+", "");
+        if (b64.isEmpty()) return null;
         try {
-            return KeyFactory.getInstance("Ed25519").generatePrivate(
-                    new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64.replaceAll("\\s+", ""))));
+            return KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
         } catch (Exception e) {
-            throw new IllegalStateException("SIGNING_PRIVATE_KEY is not a valid base64 Ed25519 private key", e);
+            throw new IllegalStateException("SIGNING_PRIVATE_KEY is not a valid key: paste the one line from "
+                    + "subscription-tool/keys-online/private.key (it starts with MC4CAQAw)", e);
         }
     }
 
