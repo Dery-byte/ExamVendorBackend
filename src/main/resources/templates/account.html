@@ -14,8 +14,21 @@
 
   <div class="alert alert-warn" th:if="${!emailConfigured}">
     <div><strong>Email isn't set up on this server.</strong> Sign-in codes can't be sent: set MAILJET_SMTP_USERNAME and
-      MAILJET_SMTP_PASSWORD (for local use, run-local.cmd prints codes in its window instead).</div>
+      MAILJET_SMTP_PASSWORD (locally, codes are also printed in the console).</div>
   </div>
+
+  <section class="card" aria-labelledby="mail-h">
+    <div class="card-head">
+      <h2 id="mail-h">Email</h2>
+      <form method="post" th:action="@{/account/test-email}"><button class="btn btn-sm" type="submit">Send me a test email</button></form>
+    </div>
+    <dl class="facts">
+      <div><dt>Sent through</dt><dd th:text="${emailConfigured} ? 'Mailjet (API)' : 'Not set up'">Mailjet</dd></div>
+      <div><dt>From</dt><dd th:text="${fromAddress}">sender</dd></div>
+    </dl>
+    <p class="small muted">Codes from a @gmail.com sender often land in Spam. For reliable delivery, send from an address on your
+      own domain with SPF and DKIM set up in Mailjet, then set MAIL_FROM_ADDRESS (see README).</p>
+  </section>
 
   <section class="card" aria-labelledby="team-h">
     <h2 id="team-h">Who can sign in</h2>

@@ -72,7 +72,17 @@ public class PageController {
         model.addAttribute("user", accounts.byEmail(auth.getName()));
         model.addAttribute("team", accounts.team());
         model.addAttribute("emailConfigured", accounts.emailConfigured());
+        model.addAttribute("fromAddress", accounts.fromAddress());
         return "account";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/account/test-email")
+    public String testEmail(Authentication auth, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        com.vendor.service.Mailer.Result r = accounts.sendTestEmail(auth.getName());
+        if (r.sent()) flash.addFlashAttribute("notice", "Test email sent to " + auth.getName() + " (Mailjet message " + r.messageId()
+                + "). Not in your inbox within a minute? Look in Spam / Promotions.");
+        else flash.addFlashAttribute("error", r.error());
+        return "redirect:/account";
     }
 
     private static boolean matches(Client c, String term) {

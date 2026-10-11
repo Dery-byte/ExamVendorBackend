@@ -2,15 +2,11 @@ package com.vendor.service;
 
 import com.vendor.model.VendorUser;
 import com.vendor.repository.VendorUserRepository;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -41,50 +37,67 @@ public class AccountService {
     private final Map<String, Pending> pending = new ConcurrentHashMap<>();
     private final VendorUserRepository users;
     private final ActivityLog activity;
+    private final Mailer mailer;
 
-    @Autowired(required = false) private JavaMailSender mailSender;
-    @Value("${spring.mail.username:}") private String mailUsername;
-    @Value("${app.mail.from-address:optimusinforservice@gmail.com}") private String fromAddress;
-    @Value("${app.mail.from-name:Vendor portal}") private String fromName;
-    /** Local development without email: print codes to the log. Never in production. */
+    /** Local development: also print codes to the log. Never in production. */
     @Value("${app.login.log-codes:false}") private boolean logCodes;
     @Value("${app.admin.email:}") private String adminEmail;
 
-    public AccountService(VendorUserRepository users, ActivityLog activity) {
+    public AccountService(VendorUserRepository users, ActivityLog activity, Mailer mailer) {
         this.users = users;
         this.activity = activity;
+        this.mailer = mailer;
     }
 
-    /** On a new database, the address in VENDOR_ADMIN_EMAIL becomes the first account. */
+    /**
+     * The address(es) in VENDOR_ADMIN_EMAIL (comma-separated) can always sign in: each is added if missing.
+     * Everyone else is added or removed in the vendor_user table.
+     */
     @EventListener(ApplicationReadyEvent.class)
-    public void createFirstAccount() {
-        if (users.count() > 0) return;
-        String email = normalise(adminEmail);
-        if (!email.matches("[^@\\s]+@[^@\\s]+")) {
-            log.warn("No vendor accounts yet. Set VENDOR_ADMIN_EMAIL and restart, or add a row to the vendor_user table.");
-            return;
+    public void ensureAdminAccounts() {
+        for (String raw : Objects.toString(adminEmail, "").split("[,;\\s]+")) {
+            String email = normalise(raw);
+            if (email.isEmpty()) continue;
+            if (!email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) {
+                log.warn("VENDOR_ADMIN_EMAIL: '{}' is not an email address; ignored.", raw);
+                continue;
+            }
+            if (users.findByEmail(email).isPresent()) continue;
+            VendorUser u = new VendorUser();
+            u.setEmail(email);
+            u.setName("Administrator");
+            u.setCreatedAt(LocalDateTime.now().withNano(0));
+            users.save(u);
+            activity.record(null, "System", "Account added from VENDOR_ADMIN_EMAIL", email);
+            log.info("[VENDOR-LOGIN] Added {} (VENDOR_ADMIN_EMAIL); it signs in with an emailed code.", email);
         }
-        VendorUser u = new VendorUser();
-        u.setEmail(email);
-        u.setName("Administrator");
-        u.setCreatedAt(LocalDateTime.now().withNano(0));
-        users.save(u);
-        activity.record(null, "System", "First account added", email);
-        log.info("Added {} as the first vendor account; it signs in with an emailed code.", email);
+        if (users.count() == 0)
+            log.warn("[VENDOR-LOGIN] Nobody can sign in yet: set VENDOR_ADMIN_EMAIL, or add a row to the vendor_user table.");
     }
 
-    public boolean emailConfigured() { return mailSender != null && mailUsername != null && !mailUsername.isBlank(); }
+    public boolean emailConfigured() { return mailer.configured(); }
 
-    /** Sends a code if the email is in vendor_user. The caller always shows the same reply either way. */
+    public String fromAddress() { return mailer.fromAddress(); }
+
+    /**
+     * Sends a code if the email is in vendor_user. The page always shows the same reply; what really happened
+     * is in the server log ([VENDOR-LOGIN]).
+     */
     public void requestCode(String rawEmail) {
         String email = normalise(rawEmail);
-        if (email.isEmpty() || users.findByEmail(email).isEmpty()) return;
+        if (email.isEmpty()) return;
+        if (users.findByEmail(email).isEmpty()) {
+            log.info("[VENDOR-LOGIN] Code requested for {}, which is not in vendor_user: nothing sent.", email);
+            return;
+        }
         Pending prev = pending.get(email);
-        if (prev != null && prev.sentAt().plusSeconds(RESEND_AFTER_SECONDS).isAfter(Instant.now())) return;
+        if (prev != null && prev.sentAt().plusSeconds(RESEND_AFTER_SECONDS).isAfter(Instant.now())) {
+            log.info("[VENDOR-LOGIN] Code for {} was sent less than a minute ago: not sent again yet.", email);
+            return;
+        }
         String code = issue(email);
         if (logCodes) log.warn("[VENDOR-LOGIN] Code for {}: {} (VENDOR_LOG_CODES=true; local use only)", email, code);
-        if (emailConfigured()) CompletableFuture.runAsync(() -> sendCode(email, code));
-        else if (!logCodes) log.error("[VENDOR-LOGIN] Email is not set up (MAILJET_SMTP_USERNAME / PASSWORD): the code for {} can't be sent.", email);
+        CompletableFuture.runAsync(() -> sendCode(email, code));
     }
 
     /** Creates and remembers a new code for an approved email. Public for tests. */
@@ -130,19 +143,24 @@ public class AccountService {
     }
 
     private void sendCode(String email, String code) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setFrom(fromAddress, fromName);
-            helper.setTo(email);
-            helper.setSubject("Your vendor portal sign-in code: " + code);
-            helper.setText("<p>Your vendor portal sign-in code is</p>"
-                    + "<p style=\"font-size:26px;font-weight:bold;letter-spacing:4px\">" + code + "</p>"
-                    + "<p>It expires in 10 minutes. If you didn't ask for it, ignore this email.</p>", true);
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("[VENDOR-LOGIN] Could not send the code to {}: {}", email, e.getMessage());
-        }
+        Mailer.Result r = mailer.send(email, "Your vendor portal sign-in code: " + code,
+                "Your vendor portal sign-in code is " + code + ".\n\nIt expires in 10 minutes. If you didn't ask for it, ignore this email.",
+                "<p>Your vendor portal sign-in code is</p>"
+                        + "<p style=\"font-size:26px;font-weight:bold;letter-spacing:4px\">" + code + "</p>"
+                        + "<p>It expires in 10 minutes. If you didn't ask for it, ignore this email.</p>",
+                "vendor-sign-in");
+        if (r.sent()) log.info("[VENDOR-LOGIN] Code emailed to {} (Mailjet message {}).", email, r.messageId());
+        else log.error("[VENDOR-LOGIN] Code NOT emailed to {}: {}", email, r.error());
+    }
+
+    /** "Send me a test email" on the account page: sends now and says exactly what Mailjet did. */
+    public Mailer.Result sendTestEmail(String email) {
+        Mailer.Result r = mailer.send(normalise(email), "Vendor portal test email",
+                "This is a test email from the vendor portal. Sign-in codes come from the same address.",
+                "<p>This is a test email from the vendor portal.</p><p>Sign-in codes come from the same address.</p>",
+                "vendor-test");
+        log.info("[MAIL] Test email to {}: {}", email, r.sent() ? "sent (Mailjet message " + r.messageId() + ")" : r.error());
+        return r;
     }
 
     public static String normalise(String email) { return email == null ? "" : email.trim().toLowerCase(Locale.ROOT); }

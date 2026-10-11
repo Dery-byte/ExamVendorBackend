@@ -26,7 +26,8 @@
       </form>
       <a class="btn btn-quiet btn-sm" th:href="@{/login}">Use a different email</a>
     </div>
-    <p class="small muted auth-foot" th:text="'A new code can be sent once a minute; each code allows ' + ${maxAttempts} + ' tries.'">…</p>
+    <p class="small muted auth-foot">Not there after a minute? Look in <b>Spam</b> or <b>Promotions</b> for an email from
+      <span th:text="${fromAddress}">sender</span>. A new code can be sent once a minute.</p>
   </div>
 </main>
 </body>

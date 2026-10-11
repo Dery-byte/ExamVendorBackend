@@ -45,7 +45,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         "spring.datasource.url=jdbc:h2:mem:billing;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.username=sa", "spring.datasource.password=",
-        "spring.mail.username=", "app.login.log-codes=false",
+        "app.mailjet.api-key=", "app.mailjet.api-secret=", "app.login.log-codes=false",
         "app.paystack.secret-key=sk_test_billing",
         "app.public-url=https://vendor.example.com",
         "app.billing.renewal-cron=-",

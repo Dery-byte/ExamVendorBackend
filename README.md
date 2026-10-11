@@ -33,8 +33,10 @@ Host it once, for all clients (it is not deployed per client).
 |---|---|---|
 | `SIGNING_PRIVATE_KEY` | yes | Contents of `subscription-tool/keys-online/private.key` (one base64 line). Store it as a secret. |
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | yes in production | MySQL, e.g. `jdbc:mysql://host:3306/vendor_portal`. Without them a local H2 file (`./data`) is used. |
-| `VENDOR_ADMIN_EMAIL` | first start | Added as the first account while the `vendor_user` table is empty. Everyone signs in with a code emailed to them; there are no passwords. |
-| `MAILJET_SMTP_USERNAME`, `MAILJET_SMTP_PASSWORD` (+ `MAILJET_SMTP_PORT`, `MAIL_FROM_ADDRESS`) | yes | Email for sign-in codes: the same Mailjet values as the exam portal. |
+| `VENDOR_ADMIN_EMAIL` | yes | Your email (comma-separate several); always added to `vendor_user` if missing. Everyone signs in with a code emailed to them; there are no passwords. |
+| `MAILJET_SMTP_USERNAME`, `MAILJET_SMTP_PASSWORD` | yes | Mailjet API key and secret (the exam portal's SMTP username / password). Codes are sent through Mailjet's API over HTTPS. |
+| `MAIL_FROM_ADDRESS` | recommended | A sender verified in Mailjet, ideally on your own domain (see *Email delivery*). |
+| `SPRING_PROFILES_ACTIVE` | yes, `prod` | Without it the server runs the `dev` settings: sign-in codes printed in its log, cookies over http. |
 | `PUBLIC_URL` | yes | This portal's https address, shown in the linking instructions. |
 | `COOKIE_SECURE` | no | Defaults to `true`; set `false` only for plain-http local runs. |
 | `PAYSTACK_SECRET_KEY` | for online payment | Your Paystack secret key (`sk_test_…` to try it, `sk_live_…` for real). Without it invoices can only be paid by hand. |
@@ -87,3 +89,24 @@ page shows its last check-in, whether it has picked up the newest key, its state
    Super Admin presses **"I've paid, check now"**.
 
 A payment for the wrong amount isn't counted; it is logged on the client's page for you to sort out.
+
+## Email delivery
+
+Codes go through Mailjet's Send API. Every request is logged on the server, so you can see what happened:
+
+- `[VENDOR-LOGIN] Code emailed to x (Mailjet message …)`: Mailjet accepted it. Not in the inbox? Look in **Spam / Promotions**.
+- `[VENDOR-LOGIN] Code NOT emailed to x: …`: Mailjet's reason (wrong key, sender not verified …).
+- `[VENDOR-LOGIN] Code requested for x, which is not in vendor_user`: that address can't sign in; add it.
+
+**Account → Send me a test email** sends one now and shows Mailjet's answer.
+
+**Getting codes into the inbox:** a `@gmail.com` sender sent through Mailjet can't pass Gmail's checks (SPF/DKIM), so Gmail
+often files it as Spam. Send from your own domain instead, e.g. `optimusinforservice@elygrad.com`:
+
+1. Mailjet → *Account settings → Senders & domains → Add domain*: `elygrad.com`.
+2. At your DNS host (Namecheap), change the one SPF TXT record on `elygrad.com` to
+   `v=spf1 include:spf.efwd.registrar-servers.com include:spf.mailjet.com ~all`.
+3. Add the DKIM TXT record Mailjet shows, on `mailjet._domainkey.elygrad.com`.
+4. When Mailjet shows SPF and DKIM as OK, validate the sender `optimusinforservice@elygrad.com` (the confirmation email
+   reaches you through your Namecheap email forwarding).
+5. Set `MAIL_FROM_ADDRESS=optimusinforservice@elygrad.com` on the vendor portal (and the exam portal, which has the same issue).

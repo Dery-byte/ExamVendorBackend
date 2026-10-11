@@ -71,6 +71,7 @@ public class LoginController {
         if (email == null) return "redirect:/login";
         model.addAttribute("email", email);
         model.addAttribute("maxAttempts", AccountService.MAX_ATTEMPTS);
+        model.addAttribute("fromAddress", accounts.fromAddress());
         return "login-code";
     }
 
