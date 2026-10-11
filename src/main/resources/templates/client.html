@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(${c.name})}"></head>
 <body>
-<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<th:block th:replace="~{fragments/layout :: topbar('clients')}"></th:block>
 <main class="page">
   <div th:replace="~{fragments/layout :: alerts}"></div>
 
@@ -153,7 +153,7 @@
           <input class="input" id="inotes" maxlength="300" th:field="*{notes}" placeholder="e.g. Yearly renewal 2026/27">
         </div>
         <p class="small muted">The client's portal shows it with a <b>Pay online</b> button from its next check-in. Paid online, it renews the portal by itself.</p>
-        <div class="form-actions"><button class="btn btn-primary" type="submit">Raise invoice</button></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-busy-label="Raising invoice…">Raise invoice</button></div>
       </form>
     </details>
   </section>
@@ -209,7 +209,7 @@
         </div>
         <p class="small muted">If it pays beyond <span th:text="${fmt.day(c.paidUntil)}">date</span>, a new key is issued and the client's portal installs it by itself.
           <th:block th:if="${c.suspended}"> A suspension you set stays until you lift it.</th:block></p>
-        <div class="form-actions"><button class="btn btn-primary" type="submit">Record payment</button></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-busy-label="Recording…">Record payment</button></div>
       </form>
     </details>
 
@@ -222,11 +222,11 @@
           <label for="reason">Reason (the client's developer sees it)</label>
           <input class="input" id="reason" name="reason" maxlength="300" required placeholder="e.g. Invoice INV-104 unpaid after 60 days">
         </div>
-        <div class="form-actions"><button class="btn btn-danger" type="submit">Suspend portal</button></div>
+        <div class="form-actions"><button class="btn btn-danger" type="submit" data-busy-label="Suspending…">Suspend portal</button></div>
       </form>
       <form th:if="${c.suspended}" method="post" th:action="@{/clients/{id}/resume(id=${c.id})}">
         <p class="small muted">The portal goes back to what the paid dates say at its next check-in.</p>
-        <div class="form-actions"><button class="btn btn-primary" type="submit">Lift suspension</button></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-busy-label="Lifting…">Lift suspension</button></div>
       </form>
     </section>
   </div>
@@ -253,7 +253,7 @@
       </dl>
       <form method="post" th:action="@{/clients/{id}/token(id=${c.id})}"
             data-confirm="Replace the token? The client's portal stops checking in until the new token is entered there.">
-        <div class="form-actions"><button class="btn" type="submit">Replace token</button></div>
+        <div class="form-actions"><button class="btn" type="submit" data-busy-label="Replacing…">Replace token</button></div>
       </form>
     </section>
   </div>

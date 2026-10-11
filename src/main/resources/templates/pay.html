@@ -38,7 +38,7 @@
         <label for="email">Email for the receipt</label>
         <input class="input" id="email" name="email" type="email" th:value="${email}" autocomplete="email" required maxlength="150">
       </div>
-      <button class="btn btn-primary pay-btn" type="submit" th:text="'Pay ' + ${fmt.money(invoice.currency, invoice.amount)}">Pay</button>
+      <button class="btn btn-primary pay-btn" type="submit" data-busy-label="Opening Paystack…" th:text="'Pay ' + ${fmt.money(invoice.currency, invoice.amount)}">Pay</button>
       <p class="small muted pay-note">You'll pay securely on Paystack by card, Mobile Money or bank transfer, then come back here.</p>
     </form>
 

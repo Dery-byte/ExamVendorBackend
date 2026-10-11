@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.util.NoSuchElementException;
 
 /** Shared by every page: who is signed in, whether keys can be signed; and the "not found" page. */
-@ControllerAdvice(assignableTypes = {PageController.class, ClientController.class, PayController.class, LoginController.class})
+@ControllerAdvice(assignableTypes = {PageController.class, ClientController.class, PayController.class, LoginController.class, RevenueController.class})
 public class GlobalModel {
 
     private final KeySigner signer;

@@ -43,6 +43,20 @@ public class Fmt {
         return currency + " " + new DecimalFormat("#,##0.00").format(amount);
     }
 
+    /** 18.5K, 1.2M: for axis ticks and labels on bars. */
+    public String compact(BigDecimal v) {
+        if (v == null) return "0";
+        double d = v.doubleValue(), a = Math.abs(d);
+        if (a >= 1_000_000) return trim(d / 1_000_000) + "M";
+        if (a >= 1_000) return trim(d / 1_000) + "K";
+        return trim(d);
+    }
+
+    private static String trim(double d) {
+        String s = String.format(Locale.ENGLISH, "%.1f", d);
+        return s.endsWith(".0") ? s.substring(0, s.length() - 2) : s;
+    }
+
     public String count(Long n) { return n == null ? "—" : String.format(Locale.ENGLISH, "%,d", n); }
 
     /** A state as the client's portal reports it (ACTIVE, GRACE …), in the words the pages use. */

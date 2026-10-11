@@ -24,6 +24,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     long countByStatus(Invoice.Status status);
 
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.client WHERE i.status = :status")
+    List<Invoice> findWithClientByStatus(@Param("status") Invoice.Status status);
+
     /** Held while a payment is recorded, so two confirmations of one payment can't both record it. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Invoice i WHERE i.id = :id")

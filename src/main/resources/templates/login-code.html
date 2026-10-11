@@ -16,13 +16,13 @@
         <input class="input code-input" id="code" name="code" inputmode="numeric" autocomplete="one-time-code"
                pattern="[0-9 ]{6,7}" maxlength="7" required autofocus placeholder="123456">
       </div>
-      <button class="btn btn-primary" type="submit">Sign in</button>
+      <button class="btn btn-primary" type="submit" data-busy-label="Signing in…">Sign in</button>
     </form>
 
     <div class="auth-links">
       <form th:action="@{/login/code}" method="post">
         <input type="hidden" name="email" th:value="${email}">
-        <button class="btn btn-quiet btn-sm" type="submit">Send a new code</button>
+        <button class="btn btn-quiet btn-sm" type="submit" data-busy-label="Sending…">Send a new code</button>
       </form>
       <a class="btn btn-quiet btn-sm" th:href="@{/login}">Use a different email</a>
     </div>

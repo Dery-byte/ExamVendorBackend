@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title th:text="${title} + ' · Vendor portal'">Vendor portal</title>
   <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
@@ -11,19 +11,64 @@
 </head>
 <body>
 
-<header th:fragment="topbar(active)" class="topbar">
-  <div class="topbar-in">
-    <a class="brand" th:href="@{/}"><span class="brand-mark" aria-hidden="true">✓</span> Vendor portal</a>
-    <nav class="nav" aria-label="Main">
-      <a th:href="@{/}" th:attr="aria-current=${active == 'clients'} ? 'page' : null">Clients</a>
-      <a th:href="@{/account}" th:attr="aria-current=${active == 'account'} ? 'page' : null">Account</a>
+<!--
+  The shell, as in the exam portal's developer console:
+  sidebar ≥1024px · top bar + tab strip 640–1023px · top bar + bottom navigation <640px.
+-->
+<th:block th:fragment="topbar(active)">
+  <aside class="side" aria-label="Vendor portal">
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+      <span class="brand-text"><strong>Vendor portal</strong><small>Subscriptions &amp; billing</small></span>
+    </a>
+    <p class="side-label">Manage</p>
+    <nav class="side-nav">
+      <a class="nav-item" th:href="@{/}" th:attr="aria-current=${active == 'clients'} ? 'page' : null">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        <span>Clients</span></a>
+      <a class="nav-item" th:href="@{/revenue}" th:attr="aria-current=${active == 'revenue'} ? 'page' : null">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        <span>Revenue</span></a>
+      <a class="nav-item" th:href="@{/account}" th:attr="aria-current=${active == 'account'} ? 'page' : null">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        <span>Account</span></a>
     </nav>
-    <div class="who">
-      <span th:text="${me}">you@example.com</span>
-      <form th:action="@{/logout}" method="post"><button class="btn btn-sm" type="submit">Sign out</button></form>
+    <div class="side-foot">
+      <span class="avatar" aria-hidden="true" th:text="${me != null and !#strings.isEmpty(me)} ? ${#strings.toUpperCase(#strings.substring(me, 0, 1))} : '?'">A</span>
+      <div class="side-user"><strong th:text="${me}">you@example.com</strong><span>Vendor team</span></div>
+      <form th:action="@{/logout}" method="post">
+        <button class="iconbtn" type="submit" aria-label="Sign out" title="Sign out">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </form>
     </div>
-  </div>
-</header>
+  </aside>
+
+  <header class="top">
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+      <span class="brand-text"><strong>Vendor portal</strong><small>Subscriptions &amp; billing</small></span>
+    </a>
+    <span class="top-spacer"></span>
+    <form th:action="@{/logout}" method="post">
+      <button class="iconbtn" type="submit" aria-label="Sign out" title="Sign out">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </form>
+  </header>
+
+  <nav class="mnav" aria-label="Vendor portal">
+    <a class="nav-item" th:href="@{/}" th:attr="aria-current=${active == 'clients'} ? 'page' : null">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+      <span>Clients</span></a>
+    <a class="nav-item" th:href="@{/revenue}" th:attr="aria-current=${active == 'revenue'} ? 'page' : null">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+      <span>Revenue</span></a>
+    <a class="nav-item" th:href="@{/account}" th:attr="aria-current=${active == 'account'} ? 'page' : null">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span>Account</span></a>
+  </nav>
+</th:block>
 
 <div th:fragment="alerts">
   <div class="alert alert-bad" role="alert" th:if="${!signerAvailable}">

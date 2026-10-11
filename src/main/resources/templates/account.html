@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Account')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: topbar('account')}"></header>
+<th:block th:replace="~{fragments/layout :: topbar('account')}"></th:block>
 <main class="page">
   <div th:replace="~{fragments/layout :: alerts}"></div>
   <div class="page-head">
@@ -20,7 +20,7 @@
   <section class="card" aria-labelledby="mail-h">
     <div class="card-head">
       <h2 id="mail-h">Email</h2>
-      <form method="post" th:action="@{/account/test-email}"><button class="btn btn-sm" type="submit">Send me a test email</button></form>
+      <form method="post" th:action="@{/account/test-email}"><button class="btn btn-sm" type="submit" data-busy-label="Sending…">Send me a test email</button></form>
     </div>
     <dl class="facts">
       <div><dt>Sent through</dt><dd th:text="${emailConfigured} ? 'Mailjet (API)' : 'Not set up'">Mailjet</dd></div>

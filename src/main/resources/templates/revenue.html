@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Revenue')}"></head>
+<body>
+<th:block th:replace="~{fragments/layout :: topbar('revenue')}"></th:block>
+<main class="page">
+  <div th:replace="~{fragments/layout :: alerts}"></div>
+
+  <div class="page-head">
+    <div>
+      <h1>Revenue</h1>
+      <p class="muted">Subscription payments received from clients. Amounts are kept per currency and never added across currencies.</p>
+    </div>
+    <a class="btn" th:href="@{/revenue/payments.csv} + '?' + ${exportQuery}">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      Export CSV</a>
+  </div>
+
+  <!-- At a glance: fixed periods, every client and method -->
+  <section class="kpis" aria-label="At a glance">
+    <div class="kpi">
+      <span class="kpi-label">This month</span>
+      <b class="kpi-value" th:text="${fmt.money(r.currency, r.thisMonth.of(r.currency))}">GHS 0.00</b>
+      <span class="kpi-sub" th:each="e : ${r.thisMonth.others(r.currency)}" th:text="'+ ' + ${fmt.money(e.key, e.value)}">+ USD 0</span>
+      <span class="kpi-sub" th:text="'Last month ' + ${fmt.money(r.currency, r.lastMonth.of(r.currency))}">Last month</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label" th:text="'This year (' + ${#temporals.year(#temporals.createToday())} + ')'">This year</span>
+      <b class="kpi-value" th:text="${fmt.money(r.currency, r.thisYear.of(r.currency))}">GHS 0.00</b>
+      <span class="kpi-sub" th:each="e : ${r.thisYear.others(r.currency)}" th:text="'+ ' + ${fmt.money(e.key, e.value)}">+ USD 0</span>
+      <span class="kpi-sub" th:text="${r.thisYear.count()} + ' payment' + (${r.thisYear.count()} == 1 ? '' : 's')">0 payments</span>
+    </div>
+    <div class="kpi kpi-warn">
+      <span class="kpi-label">Unpaid invoices</span>
+      <b class="kpi-value" th:text="${fmt.money(r.currency, r.outstanding.of(r.currency))}">GHS 0.00</b>
+      <span class="kpi-sub" th:each="e : ${r.outstanding.others(r.currency)}" th:text="'+ ' + ${fmt.money(e.key, e.value)}">+ USD 0</span>
+      <span class="kpi-sub" th:text="${r.outstanding.count()} + ' open invoice' + (${r.outstanding.count()} == 1 ? '' : 's')">0 open</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Renewals due in 30 days</span>
+      <b class="kpi-value" th:text="${fmt.money(r.currency, r.due30.of(r.currency))}">GHS 0.00</b>
+      <span class="kpi-sub" th:each="e : ${r.due30.others(r.currency)}" th:text="'+ ' + ${fmt.money(e.key, e.value)}">+ USD 0</span>
+      <span class="kpi-sub">
+        <th:block th:text="${r.due30Clients} + ' client' + (${r.due30Clients} == 1 ? '' : 's')">0 clients</th:block><th:block
+          th:if="${r.due30Unpriced > 0}" th:text="', ' + ${r.due30Unpriced} + ' without a yearly price'"></th:block><th:block
+          th:if="${r.overdueClients > 0}" th:text="' · ' + ${r.overdueClients} + ' overdue'"></th:block>
+      </span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">All time</span>
+      <b class="kpi-value" th:text="${fmt.money(r.currency, r.allTime.of(r.currency))}">GHS 0.00</b>
+      <span class="kpi-sub" th:each="e : ${r.allTime.others(r.currency)}" th:text="'+ ' + ${fmt.money(e.key, e.value)}">+ USD 0</span>
+      <span class="kpi-sub" th:text="${r.allTime.count()} + ' payment' + (${r.allTime.count()} == 1 ? '' : 's')">0 payments</span>
+    </div>
+  </section>
+
+  <!-- One row of filters; everything below follows it -->
+  <form class="filters" method="get" th:action="@{/revenue}" role="search" aria-label="Period and filters">
+    <div class="seg" role="group" aria-label="Period">
+      <a th:each="p : ${presets}" th:href="@{/revenue} + '?preset=' + ${p[0]} + ${keep}" th:text="${p[1]}"
+         th:attr="aria-current=${f.preset() == p[0]} ? 'true' : null">This year</a>
+    </div>
+    <div class="filter-fields">
+      <label class="field-inline"><span>From</span><input class="input" type="date" name="from" th:value="${f.from()}"></label>
+      <label class="field-inline"><span>To</span><input class="input" type="date" name="to" th:value="${f.to()}"></label>
+      <label class="field-inline"><span class="sr-only">Client</span>
+        <select name="client">
+          <option value="">All clients</option>
+          <option th:each="c : ${r.clientOptions()}" th:value="${c.id}" th:text="${c.name}" th:selected="${f.clientId() == c.id}">Client</option>
+        </select></label>
+      <label class="field-inline"><span class="sr-only">Payment method</span>
+        <select name="method">
+          <option value="all" th:selected="${f.method() == 'all'}">All methods</option>
+          <option value="online" th:selected="${f.method() == 'online'}">Online (Paystack)</option>
+          <option value="manual" th:selected="${f.method() == 'manual'}">Recorded by hand</option>
+        </select></label>
+      <button class="btn btn-primary" type="submit" data-busy-label="Loading…">Apply</button>
+    </div>
+  </form>
+
+  <p class="period-line">
+    <b th:text="${fmt.day(f.from())} + ' – ' + ${fmt.day(f.to())}">1 Jan – 11 Oct 2026</b>
+    <th:block th:text="' · ' + ${fmt.money(r.currency, r.periodTotal.of(r.currency))}"> · GHS 0.00</th:block><th:block
+      th:each="e : ${r.periodTotal.others(r.currency)}" th:text="' + ' + ${fmt.money(e.key, e.value)}"></th:block>
+    <th:block th:text="' from ' + ${r.paymentCount} + ' payment' + (${r.paymentCount} == 1 ? '' : 's')"> from 0 payments</th:block>
+  </p>
+
+  <!-- Received per month (or year) -->
+  <section class="card" aria-labelledby="chart-h">
+    <div class="card-head">
+      <h2 id="chart-h" th:text="'Received per ' + (${r.chart.byYear()} ? 'year' : 'month') + ' (' + ${r.currency} + ')'">Received per month</h2>
+      <span class="small muted" th:if="${!r.periodTotal.others(r.currency).isEmpty()}">Other currencies are in the tables below.</span>
+    </div>
+    <div class="empty" th:if="${r.chart.empty()}">No payments in this period.</div>
+    <figure class="chart" th:unless="${r.chart.empty()}">
+      <div class="chart-area">
+        <div class="chart-y" aria-hidden="true">
+          <span th:each="t, s : ${r.chart.ticks()}" th:class="'y y-' + ${s.index}" th:text="${fmt.compact(t)}">0</span>
+        </div>
+        <div class="chart-plot">
+          <span class="gl gl-0"></span><span class="gl gl-1"></span><span class="gl gl-2"></span><span class="gl gl-3"></span><span class="gl gl-4"></span>
+          <div class="chart-cols">
+            <div class="chart-col" th:each="b : ${r.chart.bars()}" tabindex="0" role="img"
+                 th:attr="aria-label=${b.label()} + ': ' + ${fmt.money(r.currency, b.amount())} + ', ' + ${b.payments()} + ' payment(s)',
+                          data-tip-title=${b.label()} + ' · ' + ${b.payments()} + ' payment' + (${b.payments()} == 1 ? '' : 's'),
+                          data-tip-value=${fmt.money(r.currency, b.amount())}">
+              <span th:class="'chart-bar bh-' + ${b.heightPct()}"><span class="chart-val" th:if="${b.labelled()}" th:text="${fmt.compact(b.amount())}">18.5K</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-x" aria-hidden="true"><span th:each="b : ${r.chart.bars()}" th:class="${b.labelClass()}" th:text="${b.shortLabel()}">Jan</span></div>
+    </figure>
+    <details class="chart-table" th:unless="${r.chart.empty()}">
+      <summary>Show as a table</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th th:text="${r.chart.byYear()} ? 'Year' : 'Month'">Month</th><th class="num" th:text="'Received (' + ${r.currency} + ')'">Received</th><th class="num">Payments</th></tr></thead>
+          <tbody><tr th:each="b : ${r.chart.bars()}"><td th:text="${b.label()}">Jan 2026</td>
+            <td class="num" th:text="${fmt.money(r.currency, b.amount())}">0</td><td class="num" th:text="${b.payments()}">0</td></tr></tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="by-client-h">
+      <div class="card-head"><h2 id="by-client-h">By client</h2><span class="small muted">Share of the period's total</span></div>
+      <p class="muted" th:if="${r.clients().isEmpty()}">No payments or unpaid invoices in this period.</p>
+      <ul class="breakdown" th:unless="${r.clients().isEmpty()}">
+        <li th:each="c : ${r.clients()}">
+          <div class="bd-top">
+            <a class="bd-name" th:href="@{/clients/{id}(id=${c.id()})}" th:text="${c.name()}">Client</a>
+            <span class="bd-amount">
+              <th:block th:text="${fmt.money(r.currency, c.paid().of(r.currency))}">GHS 0</th:block><th:block
+                th:each="e : ${c.paid().others(r.currency)}" th:text="' + ' + ${fmt.money(e.key, e.value)}"></th:block>
+            </span>
+          </div>
+          <div class="share" aria-hidden="true"><span th:class="'share-fill bw-' + ${c.sharePct()}"></span></div>
+          <div class="bd-meta">
+            <span th:text="${c.sharePct()} + '% · ' + ${c.paid().count()} + ' payment' + (${c.paid().count()} == 1 ? '' : 's')
+                  + (${c.lastPaid() != null} ? ' · last ' + ${fmt.day(c.lastPaid())} : '')">0%</span>
+            <span class="bd-owe" th:unless="${c.outstanding().isEmpty()}">Owes
+              <th:block th:each="e, s : ${c.outstanding().entries()}" th:text="(${s.index} > 0 ? ' + ' : '') + ${fmt.money(e.key, e.value)}"></th:block></span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="by-method-h">
+      <div class="card-head"><h2 id="by-method-h">By payment method</h2><span class="small muted">Share of the period's total</span></div>
+      <p class="muted" th:if="${r.methods().isEmpty()}">No payments in this period.</p>
+      <ul class="breakdown" th:unless="${r.methods().isEmpty()}">
+        <li th:each="m : ${r.methods()}">
+          <div class="bd-top">
+            <span class="bd-name"><span th:class="'tag ' + (${m.online()} ? 'tag-online' : 'tag-manual')" th:text="${m.online()} ? 'Online' : 'By hand'">Online</span>
+              <th:block th:text="${m.online()} ? ${#strings.replace(m.label(), 'Online · ', '')} : ${m.label()}">Mobile money</th:block></span>
+            <span class="bd-amount">
+              <th:block th:text="${fmt.money(r.currency, m.paid().of(r.currency))}">GHS 0</th:block><th:block
+                th:each="e : ${m.paid().others(r.currency)}" th:text="' + ' + ${fmt.money(e.key, e.value)}"></th:block>
+            </span>
+          </div>
+          <div class="share" aria-hidden="true"><span th:class="'share-fill bw-' + ${m.sharePct()}"></span></div>
+          <div class="bd-meta"><span th:text="${m.sharePct()} + '% · ' + ${m.paid().count()} + ' payment' + (${m.paid().count()} == 1 ? '' : 's')">0%</span></div>
+        </li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="card stack-gap" aria-labelledby="payments-h">
+    <div class="card-head">
+      <h2 id="payments-h">Payments</h2>
+      <span class="small muted" th:if="${r.truncated()}" th:text="'Latest ' + ${r.payments().size()} + ' of ' + ${r.paymentCount} + ': export for all'">Latest 100</span>
+    </div>
+    <p class="muted" th:if="${r.payments().isEmpty()}">No payments in this period.</p>
+    <div class="table-wrap" th:unless="${r.payments().isEmpty()}">
+      <table class="stack">
+        <thead><tr><th>Paid on</th><th>Client</th><th class="num">Amount</th><th>Method</th><th>Renews to</th><th>Reference</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${r.payments()}">
+          <td class="cell-first"><span class="cell-main" th:text="${fmt.day(p.paidOn)}">date</span></td>
+          <td data-label="Client"><a th:href="@{/clients/{id}(id=${p.client.id})}" th:text="${p.client.name}">Client</a></td>
+          <td data-label="Amount" class="num" th:text="${fmt.money(p.currency, p.amount)}">GHS 0</td>
+          <td data-label="Method" th:text="${p.method ?: '—'}">Bank</td>
+          <td data-label="Renews to" th:text="${fmt.day(p.coversUntil)}">date</td>
+          <td data-label="Reference" class="mono" th:text="${p.reference ?: '—'}">ref</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

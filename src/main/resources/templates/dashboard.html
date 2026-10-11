@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Clients')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<th:block th:replace="~{fragments/layout :: topbar('clients')}"></th:block>
 <main class="page">
   <div th:replace="~{fragments/layout :: alerts}"></div>
 
@@ -31,7 +31,7 @@
       <option value="all" th:selected="${show == 'all'}" th:text="'All clients (' + ${total} + ')'">All clients</option>
       <option value="attention" th:selected="${show == 'attention'}" th:text="'Needs attention (' + ${attention} + ')'">Needs attention</option>
     </select>
-    <button class="btn" type="submit">Filter</button>
+    <button class="btn" type="submit" data-busy-label="Loading…">Filter</button>
   </form>
 
   <div class="table-wrap">

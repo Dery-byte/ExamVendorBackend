@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(${editing} ? 'Edit client' : 'Add client')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<th:block th:replace="~{fragments/layout :: topbar('clients')}"></th:block>
 <main class="page">
   <div th:replace="~{fragments/layout :: alerts}"></div>
 
@@ -120,7 +120,7 @@
 
     <div class="form-actions">
       <a class="btn" th:href="${editing} ? @{/clients/{id}(id=${c.id})} : @{/}">Cancel</a>
-      <button class="btn btn-primary" type="submit" th:text="${editing} ? 'Save' : 'Add client'">Add client</button>
+      <button class="btn btn-primary" type="submit" data-busy-label="Saving…" th:text="${editing} ? 'Save' : 'Add client'">Add client</button>
     </div>
   </form>
 </main>

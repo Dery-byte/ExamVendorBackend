@@ -74,6 +74,17 @@ DELETE FROM vendor_user WHERE email = 'name@example.com';
 After that: **Record a payment by hand** to renew (or let them pay online, below); **Suspend now** / **Lift suspension** for disputes. The client's
 page shows its last check-in, whether it has picked up the newest key, its state, version and user counts.
 
+## Revenue
+
+**Revenue** in the menu: what clients have paid you.
+
+- At a glance: this month (and last month), this year, unpaid invoices, renewals due in the next 30 days, all time.
+- One row of filters: This month · Last 3 months · This year · Last 12 months · All time, or your own dates; one client;
+  online (Paystack) or recorded by hand. Everything below follows it.
+- Received per month (per year for ranges over three years), with a table view; by client (share of the period, what
+  each still owes); by payment method; the payments themselves. **Export CSV** downloads exactly what is shown.
+- Amounts are kept per currency: GHS and USD are never added together.
+
 ## Online payment (Paystack)
 
 1. Set `PAYSTACK_SECRET_KEY`. In the Paystack dashboard → Settings → API Keys & Webhooks, set the webhook URL to
