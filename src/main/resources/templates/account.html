@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Account')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('account')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: alerts}"></div>
+  <div class="page-head">
+    <div>
+      <h1>Account</h1>
+      <p class="muted"><span th:text="${user.email}">email</span> · last signed in <span th:text="${fmt.ago(user.lastLoginAt)}">now</span></p>
+    </div>
+  </div>
+
+  <div class="alert alert-warn" th:if="${!emailConfigured}">
+    <div><strong>Email isn't set up on this server.</strong> Sign-in codes can't be sent: set MAILJET_SMTP_USERNAME and
+      MAILJET_SMTP_PASSWORD (for local use, run-local.cmd prints codes in its window instead).</div>
+  </div>
+
+  <section class="card" aria-labelledby="team-h">
+    <h2 id="team-h">Who can sign in</h2>
+    <p class="small muted">Everyone below signs in with a code emailed to them; there are no passwords. Add or remove people
+      directly in the database, as with the exam portal's developer_email table:</p>
+    <pre class="sql">INSERT INTO vendor_user (email, name, created_at) VALUES ('name@example.com', 'Their Name', NOW());
+DELETE FROM vendor_user WHERE email = 'name@example.com';</pre>
+    <div class="table-wrap">
+      <table class="stack">
+        <thead><tr><th>Email</th><th>Name</th><th>Last signed in</th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${team}">
+          <td class="cell-first"><span class="cell-main" th:text="${u.email}">email</span></td>
+          <td data-label="Name" th:text="${u.name ?: '—'}">name</td>
+          <td data-label="Last signed in" th:text="${fmt.ago(u.lastLoginAt)}">never</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

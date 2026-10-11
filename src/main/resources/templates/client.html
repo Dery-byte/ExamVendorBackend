@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${c.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: alerts}"></div>
+
+  <div class="page-head">
+    <div>
+      <p class="crumbs"><a th:href="@{/}">Clients</a> / <span class="mono" th:text="${c.code}">UCC</span></p>
+      <div class="title-row">
+        <h1 th:text="${c.name}">University</h1>
+        <span th:replace="~{fragments/layout :: chip(${row.stage})}"></span>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/clients/{id}/edit(id=${c.id})}">Edit details &amp; terms</a>
+    </div>
+  </div>
+
+  <!-- Shown once, straight after the client is added or its token replaced -->
+  <section class="card token-card" th:if="${newToken}" aria-labelledby="token-h">
+    <div class="card-head">
+      <h2 id="token-h">Check-in token: copy it now</h2>
+      <button class="btn btn-sm" type="button" data-copy="new-token">Copy</button>
+    </div>
+    <label class="sr-only" for="new-token">Check-in token</label>
+    <textarea id="new-token" class="input secret" readonly th:text="${newToken}"></textarea>
+    <p class="small muted">It won't be shown again; if it's lost, replace it below. To link the client's portal:</p>
+    <ol class="steps">
+      <li>Sign in to the client's portal as the developer and open <b>Subscription</b>.</li>
+      <li>Under <b>Vendor portal link</b>, enter the address <span class="mono" th:text="${publicUrl}">https://vendor.example.com</span> and this token.</li>
+      <li>Or set <span class="mono">SUBSCRIPTION_VENDOR_URL</span> and <span class="mono">SUBSCRIPTION_VENDOR_TOKEN</span> on its server.</li>
+    </ol>
+  </section>
+
+  <div class="alert alert-warn" th:if="${c.suspended}">
+    <div><strong>Suspended by you.</strong> <span th:text="${c.suspendReason}">Reason</span></div>
+  </div>
+  <div class="alert alert-bad" th:if="${c.reportedKeyProblem != null}">
+    <div><strong>The client's portal reports a key problem.</strong> <span th:text="${c.reportedKeyProblem}">problem</span></div>
+  </div>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="sub-h">
+      <h2 id="sub-h">Subscription</h2>
+      <dl class="facts">
+        <div><dt>Paid until</dt><dd>
+          <span th:text="${fmt.day(c.paidUntil)}">1 Jan 2027</span>
+          <span class="cell-sub" th:classappend="${row.daysPaidLeft < 0} ? 'text-bad' : (${row.expiringSoon} ? 'text-warn' : '')"
+                th:text="${fmt.relDays(row.daysPaidLeft)}">in 30 days</span></dd></div>
+        <div><dt>Plan</dt><dd th:text="${c.plan}">standard</dd></div>
+        <div><dt>Grace, then read-only</dt><dd th:text="${c.graceDays} + ' days, then ' + ${c.restrictedDays} + ' days'">14, 7</dd></div>
+        <div><dt>Yearly price</dt><dd th:text="${c.annualPrice != null} ? ${fmt.money(c.currency, c.annualPrice)} : 'Not set'">GHS 0</dd></div>
+        <div><dt>Contact</dt><dd>
+          <span th:text="${c.contactName ?: '—'}">Name</span>
+          <a class="cell-sub" th:if="${c.contactEmail}" th:href="'mailto:' + ${c.contactEmail}" th:text="${c.contactEmail}">email</a>
+          <span class="cell-sub" th:if="${c.contactPhone}" th:text="${c.contactPhone}">phone</span></dd></div>
+        <div th:if="${c.notes}"><dt>Notes</dt><dd th:text="${c.notes}">notes</dd></div>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="portal-h">
+      <h2 id="portal-h">Client's portal</h2>
+      <dl class="facts">
+        <div><dt>Last check-in</dt><dd>
+          <span th:classappend="${row.silent} ? 'text-warn' : ''" th:title="${fmt.when(c.lastCheckInAt)}" th:text="${fmt.ago(c.lastCheckInAt)}">2 h ago</span>
+          <span class="cell-sub" th:if="${c.lastCheckInIp}" th:text="'from ' + ${c.lastCheckInIp}">from ip</span></dd></div>
+        <div><dt>Newest key</dt><dd>
+          <span th:if="${row.latestKey == null}" class="muted">None issued</span>
+          <span th:if="${row.latestKey != null and row.keyDelivered}" class="text-ok">In use</span>
+          <span th:if="${row.latestKey != null and !row.keyDelivered}" class="text-warn">Waiting for the next check-in</span></dd></div>
+        <div><dt>Portal says</dt><dd>
+          <span th:text="${fmt.state(c.reportedState)}" th:classappend="${row.stateMismatch} ? 'text-warn' : ''">Active</span></dd></div>
+        <div><dt>Users</dt><dd th:text="${c.reportedStudents == null and c.reportedStaff == null} ? 'Not reported'
+          : ${fmt.count(c.reportedStudents)} + ' students · ' + ${fmt.count(c.reportedStaff)} + ' staff'">0</dd></div>
+        <div><dt>Version</dt><dd th:text="${c.reportedVersion ?: '—'}">dev</dd></div>
+        <div><dt>Address</dt><dd>
+          <a th:if="${c.reportedPortalUrl ?: c.portalUrl}" th:href="${c.reportedPortalUrl ?: c.portalUrl}" rel="noopener noreferrer" target="_blank"
+             th:text="${c.reportedPortalUrl ?: c.portalUrl}">url</a>
+          <span th:unless="${c.reportedPortalUrl ?: c.portalUrl}" class="muted">—</span></dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="inv-h">
+    <div class="card-head">
+      <h2 id="inv-h">Invoices</h2>
+      <span class="small muted" th:text="${paystackMode == null} ? 'Online payment off (no PAYSTACK_SECRET_KEY)' : 'Paystack: ' + ${paystackMode} + ' mode'">Paystack</span>
+    </div>
+    <div class="table-wrap" th:if="${!invoices.isEmpty()}">
+      <table class="stack">
+        <thead><tr><th>Invoice</th><th class="num">Amount</th><th>Renews to</th><th>Due</th><th>Status</th><th>Pay link</th></tr></thead>
+        <tbody>
+        <tr th:each="inv : ${invoices}">
+          <td class="cell-first"><span class="cell-main mono" th:text="${inv.number}">INV</span>
+            <span class="cell-sub" th:text="${inv.createdBy} + ' · ' + ${fmt.day(inv.createdAt.toLocalDate())}">by</span></td>
+          <td data-label="Amount" class="num" th:text="${fmt.money(inv.currency, inv.amount)}">GHS</td>
+          <td data-label="Renews to" th:text="${fmt.day(inv.coversUntil)}">date</td>
+          <td data-label="Due" th:text="${fmt.day(inv.dueDate)}">date</td>
+          <td data-label="Status">
+            <span class="chip chip-ok" th:if="${inv.status.name() == 'PAID'}">Paid</span>
+            <span class="chip chip-warn" th:if="${inv.status.name() == 'OPEN'}">Open</span>
+            <span class="chip chip-neutral" th:if="${inv.status.name() == 'CANCELLED'}">Cancelled</span>
+          </td>
+          <td data-label="Pay link">
+            <div class="actions" th:if="${inv.status.name() == 'OPEN'}">
+              <input type="hidden" th:id="'pay-' + ${inv.id}" th:value="${payUrls.get(inv.id)}">
+              <button class="btn btn-sm" type="button" th:attr="data-copy='pay-' + ${inv.id}">Copy link</button>
+              <a class="btn btn-sm" th:href="${payUrls.get(inv.id)}" target="_blank" rel="noopener">Open</a>
+              <form method="post" th:action="@{/clients/{id}/invoices/{i}/cancel(id=${c.id},i=${inv.id})}" data-confirm="Cancel this invoice?">
+                <button class="btn btn-sm btn-quiet" type="submit">Cancel</button>
+              </form>
+            </div>
+            <span th:if="${inv.status.name() == 'PAID'}" class="small" th:text="${fmt.when(inv.paidAt)}">paid</span>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" th:if="${invoices.isEmpty()}">No invoices yet.</p>
+
+    <details class="inline-details" th:if="${!hasOpenInvoice}" th:open="${invoiceOpen != null}">
+      <summary class="btn btn-sm">Raise an invoice</summary>
+      <form method="post" th:action="@{/clients/{id}/invoices(id=${c.id})}" th:object="${invoiceForm}" novalidate>
+        <div class="grid-2">
+          <div class="field">
+            <label for="iamount">Amount</label>
+            <input class="input" id="iamount" type="number" step="0.01" min="1" th:field="*{amount}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
+          </div>
+          <div class="field">
+            <label for="icurrency">Currency</label>
+            <input class="input" id="icurrency" maxlength="3" th:field="*{currency}" th:errorclass="has-error">
+            <p class="field-error" th:if="${#fields.hasErrors('currency')}" th:errors="*{currency}"></p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="icovers">Paying it renews to</label>
+            <input class="input" id="icovers" type="date" th:field="*{coversUntil}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('coversUntil')}" th:errors="*{coversUntil}"></p>
+          </div>
+          <div class="field">
+            <label for="idue">Due</label>
+            <input class="input" id="idue" type="date" th:field="*{dueDate}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}"></p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="inotes">Note on the invoice (optional)</label>
+          <input class="input" id="inotes" maxlength="300" th:field="*{notes}" placeholder="e.g. Yearly renewal 2026/27">
+        </div>
+        <p class="small muted">The client's portal shows it with a <b>Pay online</b> button from its next check-in. Paid online, it renews the portal by itself.</p>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Raise invoice</button></div>
+      </form>
+    </details>
+  </section>
+
+  <div class="cols">
+    <details class="card" th:open="${paymentOpen != null}">
+      <summary>Record a payment by hand</summary>
+      <form method="post" th:action="@{/clients/{id}/payments(id=${c.id})}" th:object="${payment}" novalidate>
+        <div class="grid-2">
+          <div class="field">
+            <label for="amount">Amount</label>
+            <input class="input" id="amount" type="number" step="0.01" min="0.01" th:field="*{amount}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <input class="input" id="currency" maxlength="3" th:field="*{currency}" th:errorclass="has-error">
+            <p class="field-error" th:if="${#fields.hasErrors('currency')}" th:errors="*{currency}"></p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="paidOn">Paid on</label>
+            <input class="input" id="paidOn" type="date" th:field="*{paidOn}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('paidOn')}" th:errors="*{paidOn}"></p>
+          </div>
+          <div class="field">
+            <label for="coversUntil">Pays the subscription until</label>
+            <input class="input" id="coversUntil" type="date" th:field="*{coversUntil}" th:errorclass="has-error" required>
+            <p class="field-error" th:if="${#fields.hasErrors('coversUntil')}" th:errors="*{coversUntil}"></p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="method">Method</label>
+            <select id="method" th:field="*{method}">
+              <option value="Bank transfer">Bank transfer</option>
+              <option value="Mobile money">Mobile money</option>
+              <option value="Cheque">Cheque</option>
+              <option value="Cash">Cash</option>
+              <option value="Paystack">Paystack</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="reference">Reference (optional)</label>
+            <input class="input" id="reference" maxlength="100" th:field="*{reference}" placeholder="Invoice or receipt number">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pnotes">Notes (optional)</label>
+          <input class="input" id="pnotes" maxlength="500" th:field="*{notes}">
+        </div>
+        <p class="small muted">If it pays beyond <span th:text="${fmt.day(c.paidUntil)}">date</span>, a new key is issued and the client's portal installs it by itself.
+          <th:block th:if="${c.suspended}"> A suspension you set stays until you lift it.</th:block></p>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Record payment</button></div>
+      </form>
+    </details>
+
+    <section class="card" aria-labelledby="susp-h">
+      <h2 id="susp-h" th:text="${c.suspended} ? 'Lift suspension' : 'Suspend now'">Suspend now</h2>
+      <form th:if="${!c.suspended}" method="post" th:action="@{/clients/{id}/suspend(id=${c.id})}"
+            data-confirm="Suspend this client's portal? At its next check-in only its Super Admin (read-only) and developers can use it.">
+        <p class="small muted">Skips grace and read-only, whatever was paid (e.g. a cancelled contract). Students in an exam can still finish it.</p>
+        <div class="field">
+          <label for="reason">Reason (the client's developer sees it)</label>
+          <input class="input" id="reason" name="reason" maxlength="300" required placeholder="e.g. Invoice INV-104 unpaid after 60 days">
+        </div>
+        <div class="form-actions"><button class="btn btn-danger" type="submit">Suspend portal</button></div>
+      </form>
+      <form th:if="${c.suspended}" method="post" th:action="@{/clients/{id}/resume(id=${c.id})}">
+        <p class="small muted">The portal goes back to what the paid dates say at its next check-in.</p>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Lift suspension</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="key-h">
+      <div class="card-head">
+        <h2 id="key-h">Current key</h2>
+        <button class="btn btn-sm" type="button" data-copy="current-key" th:if="${row.latestKey != null}">Copy</button>
+      </div>
+      <th:block th:if="${row.latestKey != null}">
+        <label class="sr-only" for="current-key">Current key</label>
+        <textarea id="current-key" class="input secret" readonly th:text="${row.latestKey.raw}"></textarea>
+        <p class="small muted">Delivered automatically. Paste it by hand only for a portal that can't reach this server.</p>
+      </th:block>
+      <p class="muted" th:if="${row.latestKey == null}">No key yet.</p>
+    </section>
+
+    <section class="card" aria-labelledby="conn-h">
+      <h2 id="conn-h">Check-in token</h2>
+      <dl class="facts">
+        <div><dt>Token</dt><dd class="mono" th:text="'vpt_…' + ${c.tokenHint}">vpt_…abcd</dd></div>
+        <div><dt>This server</dt><dd class="mono" th:text="${publicUrl}">url</dd></div>
+      </dl>
+      <form method="post" th:action="@{/clients/{id}/token(id=${c.id})}"
+            data-confirm="Replace the token? The client's portal stops checking in until the new token is entered there.">
+        <div class="form-actions"><button class="btn" type="submit">Replace token</button></div>
+      </form>
+    </section>
+  </div>
+
+  <section class="card stack" aria-labelledby="pay-h">
+    <h2 id="pay-h">Payments</h2>
+    <div class="table-wrap" th:if="${!payments.isEmpty()}">
+      <table class="stack">
+        <thead><tr><th>Paid on</th><th class="num">Amount</th><th>Covers until</th><th>Method</th><th>Reference</th><th>Recorded by</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${payments}">
+          <td class="cell-first"><span class="cell-main" th:text="${fmt.day(p.paidOn)}">date</span>
+            <span class="cell-sub" th:if="${p.notes}" th:text="${p.notes}">notes</span></td>
+          <td data-label="Amount" class="num" th:text="${fmt.money(p.currency, p.amount)}">GHS 0.00</td>
+          <td data-label="Covers until" th:text="${fmt.day(p.coversUntil)}">date</td>
+          <td data-label="Method" th:text="${p.method ?: '—'}">Bank</td>
+          <td data-label="Reference" th:text="${p.reference ?: '—'}">ref</td>
+          <td data-label="Recorded by" th:text="${p.recordedBy}">you</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" th:if="${payments.isEmpty()}">No payments recorded yet.</p>
+  </section>
+
+  <section class="card stack" aria-labelledby="keys-h">
+    <h2 id="keys-h">Keys issued</h2>
+    <div class="table-wrap">
+      <table class="stack">
+        <thead><tr><th>Issued</th><th>Why</th><th>Paid until</th><th>Suspends</th><th>In use since</th></tr></thead>
+        <tbody>
+        <tr th:each="k : ${keys}">
+          <td class="cell-first"><span class="cell-main" th:text="${fmt.when(k.issuedAt)}">when</span>
+            <span class="cell-sub" th:text="${k.issuedBy}">by</span></td>
+          <td data-label="Why" th:text="${k.reason}">reason</td>
+          <td data-label="Paid until" th:text="${fmt.day(k.paidUntil)}">date</td>
+          <td data-label="Suspends" th:text="${k.suspended} ? 'Yes' : 'No'">No</td>
+          <td data-label="In use since" th:text="${k.deliveredAt != null} ? ${fmt.when(k.deliveredAt)} : '—'">—</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card stack" aria-labelledby="act-h" th:if="${!activity.isEmpty()}">
+    <h2 id="act-h">Activity</h2>
+    <ul class="feed">
+      <li th:each="a : ${activity}">
+        <time th:datetime="${a.at}" th:title="${fmt.when(a.at)}" th:text="${fmt.ago(a.at)}">1 h ago</time>
+        <div><strong th:text="${a.action}">action</strong>
+          <span class="who-did" th:text="${a.details != null ? a.details + ' · ' + a.actor : a.actor}">details</span></div>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

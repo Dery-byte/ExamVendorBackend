@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${editing} ? 'Edit client' : 'Add client')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: alerts}"></div>
+
+  <div class="page-head">
+    <div>
+      <p class="crumbs"><a th:href="@{/}">Clients</a><th:block th:if="${editing}"> / <a th:href="@{/clients/{id}(id=${c.id})}" th:text="${c.name}">Client</a></th:block></p>
+      <h1 th:text="${editing} ? 'Edit client' : 'Add client'">Add client</h1>
+      <p class="muted" th:if="${!editing}">Saving issues the client's first key and shows its check-in token once.</p>
+      <p class="muted" th:if="${editing}">Changing the name, plan or dates issues a new key; contact details don't.</p>
+    </div>
+  </div>
+
+  <form class="card" method="post" th:object="${form}"
+        th:action="${editing} ? @{/clients/{id}(id=${c.id})} : @{/clients}" novalidate>
+    <fieldset>
+      <legend>Institution</legend>
+      <div class="grid-2">
+        <div class="field">
+          <label for="name">Name</label>
+          <input class="input" id="name" th:field="*{name}" th:errorclass="has-error" maxlength="200" required>
+          <p class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+        </div>
+        <div class="field">
+          <label for="code">Institution code</label>
+          <input class="input mono" id="code" th:field="*{code}" th:errorclass="has-error" maxlength="40"
+                 th:readonly="${editing}" placeholder="e.g. UCC" required>
+          <p class="hint" th:if="${!editing}">Written into every key; it can't be changed later. Set the same value as SUBSCRIPTION_INSTITUTION_ID on the client's server.</p>
+          <p class="hint" th:if="${editing}">Fixed: it is written into the client's keys.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('code')}" th:errors="*{code}"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="portalUrl">Portal address (optional)</label>
+        <input class="input" id="portalUrl" th:field="*{portalUrl}" th:errorclass="has-error" placeholder="https://exams.institution.edu">
+        <p class="field-error" th:if="${#fields.hasErrors('portalUrl')}" th:errors="*{portalUrl}"></p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Subscription</legend>
+      <div class="grid-2">
+        <div class="field">
+          <label for="plan">Plan</label>
+          <input class="input" id="plan" th:field="*{plan}" th:errorclass="has-error" maxlength="40" required>
+          <p class="field-error" th:if="${#fields.hasErrors('plan')}" th:errors="*{plan}"></p>
+        </div>
+        <div class="field">
+          <label for="paidUntil">Paid until</label>
+          <input class="input" id="paidUntil" type="date" th:field="*{paidUntil}" th:errorclass="has-error" required>
+          <p class="hint">Last day of full service. Record payments on the client's page to move it on.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('paidUntil')}" th:errors="*{paidUntil}"></p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="graceDays">Grace period (days)</label>
+          <input class="input" id="graceDays" type="number" min="0" max="90" th:field="*{graceDays}" th:errorclass="has-error">
+          <p class="hint">Everything still works; the client is warned.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('graceDays')}">Use 0–90 days.</p>
+        </div>
+        <div class="field">
+          <label for="restrictedDays">Read-only period (days)</label>
+          <input class="input" id="restrictedDays" type="number" min="0" max="60" th:field="*{restrictedDays}" th:errorclass="has-error">
+          <p class="hint">View and export only, then suspended.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('restrictedDays')}">Use 0–60 days.</p>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Billing</legend>
+      <div class="grid-3">
+        <div class="field">
+          <label for="annualPrice">Yearly price (optional)</label>
+          <input class="input" id="annualPrice" type="number" step="0.01" min="0" th:field="*{annualPrice}" th:errorclass="has-error">
+          <p class="hint">When set, a renewal invoice is raised 30 days before the paid date.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('annualPrice')}" th:errors="*{annualPrice}"></p>
+        </div>
+        <div class="field">
+          <label for="currency">Currency</label>
+          <input class="input" id="currency" maxlength="3" th:field="*{currency}" th:errorclass="has-error">
+          <p class="field-error" th:if="${#fields.hasErrors('currency')}" th:errors="*{currency}"></p>
+        </div>
+        <div class="field">
+          <label for="billingEmail">Billing email</label>
+          <input class="input" id="billingEmail" type="email" th:field="*{billingEmail}" th:errorclass="has-error" maxlength="150">
+          <p class="hint">For Paystack receipts; the contact email if blank.</p>
+          <p class="field-error" th:if="${#fields.hasErrors('billingEmail')}" th:errors="*{billingEmail}"></p>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Contact</legend>
+      <div class="grid-3">
+        <div class="field">
+          <label for="contactName">Name</label>
+          <input class="input" id="contactName" th:field="*{contactName}" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="contactEmail">Email</label>
+          <input class="input" id="contactEmail" type="email" th:field="*{contactEmail}" th:errorclass="has-error" maxlength="150">
+          <p class="field-error" th:if="${#fields.hasErrors('contactEmail')}" th:errors="*{contactEmail}"></p>
+        </div>
+        <div class="field">
+          <label for="contactPhone">Phone</label>
+          <input class="input" id="contactPhone" th:field="*{contactPhone}" maxlength="40">
+        </div>
+      </div>
+      <div class="field">
+        <label for="notes">Notes (only you see these)</label>
+        <textarea id="notes" th:field="*{notes}" rows="3" maxlength="2000"></textarea>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <a class="btn" th:href="${editing} ? @{/clients/{id}(id=${c.id})} : @{/}">Cancel</a>
+      <button class="btn btn-primary" type="submit" th:text="${editing} ? 'Save' : 'Add client'">Add client</button>
+    </div>
+  </form>
+</main>
+</body>
+</html>

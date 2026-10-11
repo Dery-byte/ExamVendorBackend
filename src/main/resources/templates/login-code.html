@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Enter your code')}"></head>
+<body>
+<main class="auth">
+  <div class="card auth-card">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✓</span> Vendor portal</div>
+    <h1>Check your email</h1>
+    <p class="muted">If <b th:text="${email}">you@example.com</b> may sign in, a 6-digit code is on its way. It expires in 10 minutes.</p>
+
+    <div class="alert alert-bad" role="alert" th:if="${error}" th:text="${error}">That code is wrong.</div>
+
+    <form th:action="@{/login/verify}" method="post">
+      <div class="field">
+        <label for="code">Code</label>
+        <input class="input code-input" id="code" name="code" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9 ]{6,7}" maxlength="7" required autofocus placeholder="123456">
+      </div>
+      <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+
+    <div class="auth-links">
+      <form th:action="@{/login/code}" method="post">
+        <input type="hidden" name="email" th:value="${email}">
+        <button class="btn btn-quiet btn-sm" type="submit">Send a new code</button>
+      </form>
+      <a class="btn btn-quiet btn-sm" th:href="@{/login}">Use a different email</a>
+    </div>
+    <p class="small muted auth-foot" th:text="'A new code can be sent once a minute; each code allows ' + ${maxAttempts} + ' tries.'">…</p>
+  </div>
+</main>
+</body>
+</html>

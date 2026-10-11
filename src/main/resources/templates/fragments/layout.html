@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title th:text="${title} + ' · Vendor portal'">Vendor portal</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+
+<header th:fragment="topbar(active)" class="topbar">
+  <div class="topbar-in">
+    <a class="brand" th:href="@{/}"><span class="brand-mark" aria-hidden="true">✓</span> Vendor portal</a>
+    <nav class="nav" aria-label="Main">
+      <a th:href="@{/}" th:attr="aria-current=${active == 'clients'} ? 'page' : null">Clients</a>
+      <a th:href="@{/account}" th:attr="aria-current=${active == 'account'} ? 'page' : null">Account</a>
+    </nav>
+    <div class="who">
+      <span th:text="${me}">you@example.com</span>
+      <form th:action="@{/logout}" method="post"><button class="btn btn-sm" type="submit">Sign out</button></form>
+    </div>
+  </div>
+</header>
+
+<div th:fragment="alerts">
+  <div class="alert alert-bad" role="alert" th:if="${!signerAvailable}">
+    <div><strong>Keys can't be issued.</strong> Set SIGNING_PRIVATE_KEY on this server (the online private key) and restart.</div>
+  </div>
+  <div class="alert alert-ok" role="status" th:if="${notice}" th:text="${notice}">Saved.</div>
+  <div class="alert alert-bad" role="alert" th:if="${error}" th:text="${error}">Something went wrong.</div>
+</div>
+
+<span th:fragment="chip(stage)" th:class="'chip chip-' + ${stage.tone}" th:text="${stage.label}">Active</span>
+
+</body>
+</html>

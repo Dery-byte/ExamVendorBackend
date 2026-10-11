@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Something went wrong · Vendor portal</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="auth">
+  <div class="card auth-card">
+    <h1 th:text="${status == 404} ? 'Not found' : 'Something went wrong'">Something went wrong</h1>
+    <p class="muted" th:if="${status == 404}" th:text="${message} ?: 'That page does not exist.'">Not found.</p>
+    <p class="muted" th:unless="${status == 404}">Please try again. If it keeps happening, check the server log.</p>
+    <a class="btn btn-primary" th:href="@{/}">Back to clients</a>
+  </div>
+</main>
+</body>
+</html>

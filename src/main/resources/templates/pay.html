@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title th:text="${invoice.number} + ' · ' + ${vendorName}">Invoice</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="auth">
+  <div class="card pay-card">
+    <p class="pay-vendor" th:text="${vendorName}">Exam Portal subscriptions</p>
+    <div class="title-row">
+      <h1 th:text="'Invoice ' + ${invoice.number}">Invoice INV-2026-0001</h1>
+      <span class="chip chip-ok" th:if="${invoice.status.name() == 'PAID'}">Paid</span>
+      <span class="chip chip-neutral" th:if="${invoice.status.name() == 'CANCELLED'}">Cancelled</span>
+      <span class="chip chip-warn" th:if="${invoice.status.name() == 'OPEN'}">Due</span>
+    </div>
+    <p class="muted pay-for" th:text="${clientName}">University of Cape Coast</p>
+
+    <div class="alert alert-ok" role="status" th:if="${notice}" th:text="${notice}">Payment received.</div>
+    <div class="alert alert-bad" role="alert" th:if="${error}" th:text="${error}">Something went wrong.</div>
+
+    <p class="pay-amount" th:text="${fmt.money(invoice.currency, invoice.amount)}">GHS 18,500.00</p>
+    <dl class="facts">
+      <div><dt>For</dt><dd>Exam portal subscription</dd></div>
+      <div><dt>Renews it until</dt><dd th:text="${fmt.day(invoice.coversUntil)}">11 Oct 2027</dd></div>
+      <div th:if="${invoice.status.name() == 'OPEN'}"><dt>Due</dt><dd th:text="${fmt.day(invoice.dueDate)}">4 Oct 2026</dd></div>
+      <div th:if="${invoice.status.name() == 'PAID'}"><dt>Paid</dt><dd th:text="${fmt.when(invoice.paidAt)}">date</dd></div>
+      <div th:if="${invoice.notes}"><dt>Note</dt><dd th:text="${invoice.notes}">Yearly renewal</dd></div>
+    </dl>
+
+    <form th:if="${payable}" method="post" th:action="@{/pay/{t}(t=${invoice.payToken})}" class="pay-form">
+      <div class="field">
+        <label for="email">Email for the receipt</label>
+        <input class="input" id="email" name="email" type="email" th:value="${email}" autocomplete="email" required maxlength="150">
+      </div>
+      <button class="btn btn-primary pay-btn" type="submit" th:text="'Pay ' + ${fmt.money(invoice.currency, invoice.amount)}">Pay</button>
+      <p class="small muted pay-note">You'll pay securely on Paystack by card, Mobile Money or bank transfer, then come back here.</p>
+    </form>
+
+    <p class="pay-note" th:if="${invoice.status.name() == 'PAID'}">Thank you. The portal renews by itself within a few hours; in the portal,
+      the Super Admin can press <b>"I've paid, check now"</b> to pick it up straight away.</p>
+    <p class="pay-note muted" th:if="${invoice.status.name() == 'CANCELLED'}">This invoice is no longer due. If you were sent a newer one, use its link.</p>
+    <p class="pay-note muted" th:if="${invoice.status.name() == 'OPEN' and !onlineAvailable}">Online payment isn't available yet. Please contact us to pay this invoice.</p>
+
+    <a class="btn pay-back" th:if="${returnUrl}" th:href="${returnUrl}" rel="noopener noreferrer">Back to the portal</a>
+  </div>
+</main>
+</body>
+</html>

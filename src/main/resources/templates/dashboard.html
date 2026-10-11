@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Clients')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('clients')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: alerts}"></div>
+
+  <div class="page-head">
+    <div>
+      <h1>Clients</h1>
+      <p class="muted">Each client's portal checks in every few hours and installs its newest key by itself.</p>
+    </div>
+    <a class="btn btn-primary" th:href="@{/clients/new}">Add client</a>
+  </div>
+
+  <section class="tiles" aria-label="Summary">
+    <a class="tile tile-ok" th:href="@{/}"><b th:text="${active}">0</b><span>Paid up</span></a>
+    <a class="tile tile-accent" th:href="@{/(show='attention')}"><b th:text="${expiring}">0</b><span>Ending within 30 days</span></a>
+    <a class="tile tile-warn" th:href="@{/(show='attention')}"><b th:text="${overdue}">0</b><span>Overdue (grace / read-only)</span></a>
+    <a class="tile tile-bad" th:href="@{/(show='attention')}"><b th:text="${suspended}">0</b><span>Suspended</span></a>
+    <a class="tile" th:href="@{/(show='attention')}"><b th:text="${silent}">0</b><span th:text="'No check-in for ' + ${silentAfterHours} + ' h'">No check-in</span></a>
+    <div class="tile tile-accent"><b th:text="${openInvoices}">0</b><span>Unpaid invoices</span></div>
+  </section>
+
+  <form class="toolbar" method="get" th:action="@{/}" role="search">
+    <label class="sr-only" for="q">Search clients</label>
+    <input class="input" id="q" name="q" type="search" th:value="${q}" placeholder="Search by name, code or email">
+    <label class="sr-only" for="show">Show</label>
+    <select id="show" name="show">
+      <option value="all" th:selected="${show == 'all'}" th:text="'All clients (' + ${total} + ')'">All clients</option>
+      <option value="attention" th:selected="${show == 'attention'}" th:text="'Needs attention (' + ${attention} + ')'">Needs attention</option>
+    </select>
+    <button class="btn" type="submit">Filter</button>
+  </form>
+
+  <div class="table-wrap">
+    <table class="stack" th:if="${!rows.isEmpty()}">
+      <thead>
+      <tr><th>Institution</th><th>Status</th><th>Paid until</th><th>Last check-in</th><th>Portal reports</th><th class="num">Students</th></tr>
+      </thead>
+      <tbody>
+      <tr class="link-row" th:each="r : ${rows}">
+        <td class="cell-first">
+          <a class="cell-main" th:href="@{/clients/{id}(id=${r.client.id})}" th:text="${r.client.name}">University</a>
+          <span class="cell-sub mono" th:text="${r.client.code}">UCC</span>
+        </td>
+        <td data-label="Status"><span th:replace="~{fragments/layout :: chip(${r.stage})}"></span></td>
+        <td data-label="Paid until">
+          <span th:text="${fmt.day(r.client.paidUntil)}">1 Jan 2027</span>
+          <span class="cell-sub" th:classappend="${r.daysPaidLeft < 0} ? 'text-bad' : (${r.expiringSoon} ? 'text-warn' : '')"
+                th:text="${fmt.relDays(r.daysPaidLeft)}">in 30 days</span>
+        </td>
+        <td data-label="Last check-in">
+          <span th:classappend="${r.silent} ? 'text-warn' : ''" th:text="${fmt.ago(r.client.lastCheckInAt)}">2 h ago</span>
+          <span class="cell-sub" th:if="${r.latestKey != null and !r.keyDelivered and r.client.lastCheckInAt != null}">New key not picked up yet</span>
+        </td>
+        <td data-label="Portal reports">
+          <span th:if="${r.client.reportedState == null}" class="muted">—</span>
+          <span th:if="${r.client.reportedState != null}" th:classappend="${r.stateMismatch} ? 'text-warn' : ''" th:text="${fmt.state(r.client.reportedState)}">Active</span>
+          <span class="cell-sub text-bad" th:if="${r.client.reportedKeyProblem != null}">Key problem</span>
+        </td>
+        <td data-label="Students" class="num" th:text="${fmt.count(r.client.reportedStudents)}">0</td>
+      </tr>
+      </tbody>
+    </table>
+    <div class="empty" th:if="${rows.isEmpty()}">
+      <p th:if="${total == 0}">No clients yet. <a th:href="@{/clients/new}">Add the first one</a>.</p>
+      <p th:if="${total > 0}">No clients match. <a th:href="@{/}">Show all</a>.</p>
+    </div>
+  </div>
+
+  <section class="card stack" aria-labelledby="recent-h" th:if="${!recent.isEmpty()}">
+    <h2 id="recent-h">Recent activity</h2>
+    <ul class="feed">
+      <li th:each="a : ${recent}">
+        <time th:datetime="${a.at}" th:title="${fmt.when(a.at)}" th:text="${fmt.ago(a.at)}">1 h ago</time>
+        <div>
+          <strong th:text="${a.action}">Payment recorded</strong>
+          <a th:if="${a.clientId != null and clientNames.get(a.clientId) != null}" th:href="@{/clients/{id}(id=${a.clientId})}"
+             th:text="' · ' + ${clientNames.get(a.clientId)}"> · Client</a>
+          <span class="who-did" th:text="${a.details != null ? a.details + ' · ' + a.actor : a.actor}">details · actor</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
